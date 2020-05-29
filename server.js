@@ -15,24 +15,33 @@ mongoose.connect(
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: false }));
 
-app.get("/", async (req, res) => {
+app.get("/", async (req, res, next) => {
   const shortUrls = await ShortUrl.find();
   res.render("index", { shortUrls });
 });
 
-app.post("/shortUrls", async (req, res) => {
-  await ShortUrl.create({ full: req.body.fullUrl });
-  res.redirect("/");
+app.post("/shortUrls", async (req, res, next) => {
+  try {
+    await ShortUrl.create({ full: req.body.fullUrl });
+    res.redirect("/");
+  } catch (err) {
+    next(err);
+  }
 });
 
-app.get("/:shortUrl", async (req, res) => {
-  const shortUrl = await ShortUrl.findOne({ short: req.params.shortUrl });
-  if (shortUrl == null) return res.sendStatus(404);
-
-  shortUrl.clicks++;
-  shortUrl.save();
-
-  res.redirect(shortUrl.full);
+app.get("/:shortUrl", async (req, res, next) => {
+  try {
+    const shortUrl = await ShortUrl.findOne({ short: req.params.shortUrl });
+    if (shortUrl == null) {
+      return res.sendStatus(404);
+    } else {
+      shortUrl.clicks++;
+      shortUrl.save();
+      res.redirect(shortUrl.full);
+    }
+  } catch (err) {
+    next(err);
+  }
 });
 
 app.listen(process.env.PORT || 5000);
